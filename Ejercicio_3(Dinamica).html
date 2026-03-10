@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Sistema de Poleas — Simulador</title>
+        <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+
+        <style>
+            :root {--bg: #0d0d14; --panel: #13131f; --border: #2a2a40; --accent: #f0c040; --accent2: #4ff0b0; --accent3: #f05060; --accent4: #60a0f0; --text: #e8e8f8; --muted: #6a6a8a; --m1c: #60a0f0; --m2c: #f05060; --m3c: #4ff0b0;}
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { background: var(--bg); color: var(--text); font-family: 'Space Mono', monospace; min-height: 100vh; display: grid; grid-template-columns: 320px 1fr; grid-template-rows: auto 1fr;}
+            header {grid-column: 1 / -1; padding: 20px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 20px; background: var(--panel);}
+            header h1 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px;}
+            header p {color: var(--muted); font-size: 11px;}
+            .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 24px 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;}
+            .section-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border);}
+            .input-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px;}
+            .input-group label { font-size: 11px; color: var(--muted);}
+            .mass-input { display: flex; align-items: center; gap: 10px;}
+            .mass-dot { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0;}
+            .mass-input input {flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; font-family: 'Space Mono', monospace; font-size: 13px; border-radius: 6px; outline: none; transition: border-color 0.2s;}
+            .mass-input input:focus { border-color: var(--accent);}
+            .mass-input span { font-size: 11px; color: var(--muted); width: 20px;}
+            .btn { padding: 10px 16px; border: none; border-radius: 6px; font-family: 'Space Mono', monospace; font-size: 12px; cursor: pointer; transition: all 0.15s; font-weight: 700; letter-spacing: 1px;}
+            .btn-primary {background: var(--accent);color: #000;width: 100%}
+            .btn-primary:hover { background: #ffd060; transform: translateY(-1px); }
+            .btn-secondary {background: transparent;border: 1px solid var(--border);color: var(--muted);width: 100%}
+            .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+            .results-box {background: var(--bg);border: 1px solid var(--border);border-radius: 8px;padding: 14px}
+            .result-row {display: flex;justify-content: space-between;align-items: center;padding: 5px 0;border-bottom: 1px solid var(--border);font-size: 12px}
+            .result-row:last-child { border-bottom: none; }
+            .result-label { color: var(--muted); }
+            .result-value { font-weight: 700; }
+            .val-blue { color: var(--m1c); }
+            .val-red { color: var(--m2c); }
+            .val-green { color: var(--m3c); }
+            .val-yellow { color: var(--accent); }
+            .val-purple { color: #c080ff; }
+            .dir-badge {display: inline-block;font-size: 9px;padding: 1px 5px;border-radius: 3px;margin-left: 6px;font-weight: 700}
+            .dir-down { background: rgba(240,80,96,0.2); color: var(--m2c); }
+            .dir-up { background: rgba(96,160,240,0.2); color: var(--m1c); }
+            .dir-still { background: rgba(255,255,255,0.1); color: var(--muted); }
+            .main-area { display: flex; flex-direction: column; overflow: hidden }
+            canvas { flex: 1; display: block; width: 100%; height: 100% }
+            .time-bar { padding: 10px 20px; background: var(--panel); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 20px; font-size: 11px; color: var(--muted) }
+            .time-val { color: var(--accent2); font-weight: 700; font-size: 13px }
+            .ligature-ok { color: var(--accent2); }
+            .ligature-warn { color: var(--m2c); }
+            .controls-row { display: flex; gap: 8px }
+            .speed-btn { background: var(--bg); border: 1px solid var(--border); color: var(--muted); padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-family: 'Space Mono', monospace; transition: all 0.15s }
+            .speed-btn.active { border-color: var(--accent); color: var(--accent); }
+            .schema { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 10px; color: var(--muted); line-height: 1.8 }
+            .schema code { color: var(--accent2); font-family: 'Space Mono', monospace }
+        </style>
+    </head>
+
+    <body>
+
+        <header>
+            <h1>⚙ SISTEMA DE POLEAS</h1>
+        </header>
+
+        <div class="sidebar">
+            <div>
+                <div class="section-title">Masas del sistema</div>
+                <div class="input-group">
+                    <div class="mass-input">
+                        <div class="mass-dot" style="background:var(--m1c)"></div>
+                        <input type="number" id="m1" value="100" min="0" step="1">
+                        <span>kg</span>
+                    </div>
+                    <label>m₁ — cuelga de la polea fija</label>
+                </div>
+
+                <div class="input-group">
+                    <div class="mass-input">
+                        <div class="mass-dot" style="background:var(--m2c)"></div>
+                        <input type="number" id="m2" value="50" min="0" step="1">
+                        <span>kg</span>
+                    </div>
+                    <label>m₂ — lado izquierdo de la polea móvil</label>
+                </div>
+
+                <div class="input-group">
+                    <div class="mass-input">
+                        <div class="mass-dot" style="background:var(--m3c)"></div>
+                        <input type="number" id="m3" value="25" min="0" step="1">
+                        <span>kg</span>
+                    </div>
+                    <label>m₃ — lado derecho de la polea móvil</label>
+                </div>
+                <div class="controls-row" style="margin-top:8px">
+                    <button class="btn btn-primary" onclick="reiniciar()">▶ INICIAR</button>
+                    <button class="btn btn-secondary" onclick="pausar()">⏸</button>
+                </div>
+                <div class="controls-row" style="margin-top:8px">
+                    <span style="font-size:10px;color:var(--muted);align-self:center">Velocidad:</span>
+                    <button class="speed-btn" onclick="setSpeed(0.5)">0.5×</button>
+                    <button class="speed-btn active" id="s1" onclick="setSpeed(1)">1×</button>
+                    <button class="speed-btn" onclick="setSpeed(2)">2×</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Aceleraciones absolutas</div>
+                <div class="results-box">
+                    <div class="result-row">
+                        <span class="result-label">a₁</span>
+                        <span class="result-value val-blue" id="ra1">—</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">a₂ abs</span>
+                        <span class="result-value val-red" id="ra2">—</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">a₃ abs</span>
+                        <span class="result-value val-green" id="ra3">—</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">a_polea móvil</span>
+                        <span class="result-value val-yellow" id="raP">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Tensiones</div>
+                <div class="results-box">
+                    <div class="result-row">
+                        <span class="result-label">T₁ (polea fija)</span>
+                        <span class="result-value val-purple" id="rT1">—</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">T₂</span>
+                        <span class="result-value val-red" id="rT2">—</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">T₃</span>
+                        <span class="result-value val-green" id="rT3">—</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">T₁ − (T₂+T₃)</span>
+                        <span class="result-value" id="rTcheck">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Esquema del sistema</div>
+                <div class="schema">
+                    <code>TECHO</code><br>
+                    &nbsp;&nbsp;│<br>
+                    &nbsp;&nbsp;[<code>POLEA FIJA</code>]<br>
+                    &nbsp;╱&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;╲<br>
+                    [<code>m₁</code>]&nbsp;&nbsp;&nbsp;[<code>POLEA MÓVIL</code>]<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;╱&nbsp;&nbsp;&nbsp;╲<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<code>m₂</code>]&nbsp;&nbsp;[<code>m₃</code>]
+                </div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <canvas id="c"></canvas>
+            <div class="time-bar">
+                <span>TIEMPO: <span class="time-val" id="tval">0.00 s</span></span>
+                <span id="estado-text" style="color:var(--accent)">Listo para simular</span>
+                <span style="margin-left:auto" id="ligatura-val">Ligadura: —</span>
+            </div>
+        </div>
+
+        <script>
+            const g = 9.8;
+            const canvas = document.getElementById('c');
+            const ctx = canvas.getContext('2d');
+            let W, H;
+            let animId;
+            let running = false;
+            let paused = false;
+            let t = 0;
+            let lastTime = 0;
+            let speed = 1;
+
+            // Physics state
+            let phys = {};
+
+            // World → canvas transform
+            // World: y=0 top, y=1 bottom (normalized)
+            // We draw in canvas coords directly
+
+            function calcPhysics(m1, m2, m3) {
+                const res = {};
+                res.m1 = m1; res.m2 = m2; res.m3 = m3;
+
+                if (m2 === 0 && m3 === 0) {
+                    res.a1 = g; res.a2 = 0; res.a3 = 0;
+                    res.T1 = 0; res.T2 = 0; res.T3 = 0;
+                    res.case = 'Caída libre (m₂=m₃=0)';
+                    return res;
+                }
+
+                if (m2 === 0) {
+                    const a1 = (m1 - 2*m3)*g / (m1 + 4*m3);
+                    const a3 = -2*a1;
+                    const a3_abs = -a1 + a3;
+                    const T3 = m3*(g - a3_abs);
+                    res.a1=a1; res.a2=0; res.a3=a3;
+                    res.T1=Math.abs(T3); res.T2=0; res.T3=Math.abs(T3);
+                    res.case = 'Caso especial m₂=0';
+                    return res;
+                }
+
+                if (m3 === 0) {
+                    const a1 = (m1 - 2*m2)*g / (m1 + 4*m2);
+                    const a2 = -2*a1;
+                    const a2_abs = -a1 + a2;
+                    const T2 = m2*(g - a2_abs);
+                    res.a1=a1; res.a2=a2; res.a3=0;
+                    res.T1=Math.abs(T2); res.T2=Math.abs(T2); res.T3=0;
+                    res.case = 'Caso especial m₃=0';
+                    return res;
+                }
+
+                // General case
+                const A = [
+                    [m1+m2+m3, m3-m2],
+                    [2*m2, -(m2+m3)]
+                ];
+                const B = [(m2+m3-m1)*g, (m3-m2)*g];
+                const det = A[0][0]*A[1][1] - A[0][1]*A[1][0];
+
+                if (Math.abs(det) < 1e-12) {
+                    res.a1=0; res.a2=0; res.a3=0;
+                    res.T1=0; res.T2=0; res.T3=0;
+                    res.case = 'Equilibrio';
+                    return res;
+                }
+
+                const a1 = (B[0]*A[1][1] - B[1]*A[0][1]) / det;
+                const a2 = (A[0][0]*B[1] - A[1][0]*B[0]) / det;
+                const a3 = -a2;
+
+                const a2_abs = -a1+a2;
+                const a3_abs = -a1+a3;
+                const T2 = m2*(g-a2_abs);
+                const T3 = m3*(g-a3_abs);
+                const T1 = T2+T3;
+
+                res.a1=a1; res.a2=a2; res.a3=a3;
+                res.T1=Math.abs(T1); res.T2=Math.abs(T2); res.T3=Math.abs(T3);
+                res.case = 'Sistema completo';
+                return res;
+            }
+
+            function reiniciar() {
+                cancelAnimationFrame(animId);
+                t = 0; lastTime = 0;
+                const m1 = parseFloat(document.getElementById('m1').value)||0;
+                const m2 = parseFloat(document.getElementById('m2').value)||0;
+                const m3 = parseFloat(document.getElementById('m3').value)||0;
+                phys = calcPhysics(m1, m2, m3);
+                updateUI();
+                running = true;
+                paused = false;
+                animId = requestAnimationFrame(loop);
+            }
+
+            function pausar() {
+                paused = !paused;
+                if (!paused && running) animId = requestAnimationFrame(loop);
+            }
+
+            function setSpeed(s) {
+                speed = s;
+                document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                event.target.classList.add('active');
+            }
+
+            function updateUI() {
+                const p = phys;
+                const a2_abs = -p.a1 + p.a2;
+                const a3_abs = -p.a1 + p.a3;
+                const aP = -p.a1;
+
+                const dir = v => v > 0.001 ? `<span class="dir-badge dir-down">↓ BAJA</span>` :
+                            v < -0.001 ? `<span class="dir-badge dir-up">↑ SUBE</span>` :
+                            `<span class="dir-badge dir-still">— QUIETO</span>`;
+
+                document.getElementById('ra1').innerHTML = `${p.a1.toFixed(3)} m/s² ${dir(p.a1)}`;
+                document.getElementById('ra2').innerHTML = `${a2_abs.toFixed(3)} m/s² ${dir(a2_abs)}`;
+                document.getElementById('ra3').innerHTML = `${a3_abs.toFixed(3)} m/s² ${dir(a3_abs)}`;
+                document.getElementById('raP').innerHTML = `${aP.toFixed(3)} m/s² ${dir(aP)}`;
+                document.getElementById('rT1').textContent = `${p.T1.toFixed(1)} N`;
+                document.getElementById('rT2').textContent = `${p.T2.toFixed(1)} N`;
+                document.getElementById('rT3').textContent = `${p.T3.toFixed(1)} N`;
+                const check = p.T1 - (p.T2+p.T3);
+                document.getElementById('rTcheck').textContent = check.toExponential(1);
+                document.getElementById('rTcheck').style.color = Math.abs(check)<0.01 ? 'var(--accent2)' : 'var(--m2c)';
+                document.getElementById('estado-text').textContent = p.case;
+
+                const lig = a2_abs + a3_abs + 2*p.a1;
+                const liEl = document.getElementById('ligatura-val');
+                liEl.innerHTML = `Ligadura: <span class="${Math.abs(lig)<1e-6?'ligature-ok':'ligature-warn'}">${lig.toExponential(1)}</span>`;
+            }
+
+            function loop(ts) {
+                if (paused) return;
+                if (lastTime) {
+                    const dt = Math.min((ts - lastTime)/1000, 0.05) * speed;
+                    t += dt;
+                }
+                lastTime = ts;
+                document.getElementById('tval').textContent = t.toFixed(2) + ' s';
+                drawScene(t);
+                if (running) animId = requestAnimationFrame(loop);
+            }
+
+            function resize() {
+                W = canvas.offsetWidth;
+                H = canvas.offsetHeight;
+                canvas.width = W * devicePixelRatio;
+                canvas.height = H * devicePixelRatio;
+                ctx.scale(devicePixelRatio, devicePixelRatio);
+                if (!running) drawScene(0);
+            }
+
+            window.addEventListener('resize', resize);
+            setTimeout(resize, 50);
+
+            function drawScene(time) {
+                ctx.clearRect(0, 0, W, H);
+
+                // Background grid
+                ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+                ctx.lineWidth = 1;
+                const gs = 40;
+                for (let x=0; x<W; x+=gs) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+                for (let y=0; y<H; y+=gs) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+                if (!phys.m1 && phys.m1 !== 0) {
+                    ctx.fillStyle = 'rgba(240,192,64,0.3)';
+                    ctx.font = '16px Space Mono';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Configura masas y pulsa INICIAR', W/2, H/2);
+                    return;
+                }
+
+                const p = phys;
+                const a2_abs = -p.a1 + p.a2;
+                const a3_abs = -p.a1 + p.a3;
+
+                // Layout constants (in canvas px)
+                const cx = W * 0.5;         // x of fixed pulley
+                const ceilY = 40;
+                const pfY = ceilY + 80;     // fixed pulley center y
+
+                // Initial positions (world units in px from pfY going down)
+                const ropeLen1 = H * 0.38;    // rope from pfY to m1 initial
+                const ropeLenP = H * 0.28;    // rope from pfY to movable pulley initial
+
+                const maxDisp = H * 0.30;
+
+                // m1 absolute position (+ = down)
+                const disp1 = 0.5 * p.a1 * time * time;
+                const y1init = pfY + ropeLen1;
+                const y1 = Math.min(Math.max(pfY + 60, y1init + disp1 * 60), H - 80);
+
+                // Movable pulley position (moves opposite to m1)
+                const dispP = -0.5 * p.a1 * time * time;
+                const yPinit = pfY + ropeLenP;
+                const yP = Math.min(Math.max(pfY + 40, yPinit + dispP * 60), H - 140);
+
+                // m2, m3 positions relative to movable pulley
+                const m2offset = 80;
+                const m3offset = 80;
+                const disp2_abs = 0.5 * a2_abs * time * time;
+                const disp3_abs = 0.5 * a3_abs * time * time;
+                const y2 = Math.min(Math.max(yP + 30, yP + m2offset + disp2_abs * 60), H - 60);
+                const y3 = Math.min(Math.max(yP + 30, yP + m3offset + disp3_abs * 60), H - 60);
+
+                // x positions
+                const xM1 = cx - W*0.22;
+                const xP  = cx + W*0.12;
+                const xM2 = xP - W*0.12;
+                const xM3 = xP + W*0.12;
+
+                // === CEILING ===
+                const ceilH = 22;
+                ctx.fillStyle = '#2a2a3a';
+                ctx.fillRect(cx - W*0.35, ceilY, W*0.7, ceilH);
+                // hatching
+                ctx.strokeStyle = '#3a3a5a';
+                ctx.lineWidth = 1;
+                for (let hx = cx - W*0.35; hx < cx + W*0.35; hx += 14) {
+                    ctx.beginPath(); ctx.moveTo(hx, ceilY); ctx.lineTo(hx-10, ceilY+ceilH); ctx.stroke();
+                }
+                ctx.strokeStyle = '#4a4a6a';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(cx - W*0.35, ceilY+ceilH); ctx.lineTo(cx + W*0.35, ceilY+ceilH); ctx.stroke();
+
+                // === ROPES ===
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+
+                // m1 rope
+                ctx.strokeStyle = '#c0c0e0';
+                ctx.beginPath(); ctx.moveTo(cx, pfY); ctx.lineTo(xM1, y1 - 28); ctx.stroke();
+
+                // rope to movable pulley
+                ctx.beginPath(); ctx.moveTo(cx, pfY); ctx.lineTo(xP, yP); ctx.stroke();
+
+                // m2 rope
+                if (p.m2 > 0) {
+                    ctx.beginPath(); ctx.moveTo(xP, yP + 14); ctx.lineTo(xM2, y2 - 28); ctx.stroke();
+                }
+
+                // m3 rope
+                if (p.m3 > 0) {
+                    ctx.beginPath(); ctx.moveTo(xP, yP + 14); ctx.lineTo(xM3, y3 - 28); ctx.stroke();
+                }
+
+                // === PULLEYS ===
+                drawPulley(cx, pfY, 28, true);
+                drawPulley(xP, yP, 22, false);
+
+                // === MASSES ===
+                drawMass(xM1, y1, 54, 48, p.m1, '#60a0f0', 'm₁', p.a1, 0.5*p.a1*time*time*60);
+                if (p.m2 > 0) drawMass(xM2, y2, 54, 48, p.m2, '#f05060', 'm₂', a2_abs, disp2_abs*60);
+                if (p.m3 > 0) drawMass(xM3, y3, 54, 48, p.m3, '#4ff0b0', 'm₃', a3_abs, disp3_abs*60);
+
+                // === TENSION LABELS on ropes ===
+                if (p.T1 > 0) {
+                    const tx = (cx + xM1) / 2 + 10;
+                    const ty = (pfY + y1 - 28) / 2;
+                    drawTensionLabel(tx, ty, `T₁=${p.T1.toFixed(0)}N`, '#c080ff');
+                }
+                if (p.T2 > 0 && p.m2 > 0) {
+                    const tx = (xP + xM2) / 2 - 10;
+                    const ty = (yP + 14 + y2 - 28) / 2;
+                    drawTensionLabel(tx, ty, `T₂=${p.T2.toFixed(0)}N`, '#f05060');
+                }
+                if (p.T3 > 0 && p.m3 > 0) {
+                    const tx = (xP + xM3) / 2 + 10;
+                    const ty = (yP + 14 + y3 - 28) / 2;
+                    drawTensionLabel(tx, ty, `T₃=${p.T3.toFixed(0)}N`, '#4ff0b0');
+                }
+
+                // === VELOCITY arrows ===
+                const v1 = p.a1 * time;
+                if (p.m1 > 0 && Math.abs(v1) > 0.05) drawVArrow(xM1 + 62, y1, v1, '#60a0f0');
+                const v2 = a2_abs * time;
+                if (p.m2 > 0 && Math.abs(v2) > 0.05) drawVArrow(xM2 + 62, y2, v2, '#f05060');
+                const v3 = a3_abs * time;
+                if (p.m3 > 0 && Math.abs(v3) > 0.05) drawVArrow(xM3 + 62, y3, v3, '#4ff0b0');
+            }
+
+            function drawPulley(x, y, r, isFixed) {
+                // Outer ring
+                const grad = ctx.createRadialGradient(x-r*0.3, y-r*0.3, r*0.1, x, y, r);
+                grad.addColorStop(0, isFixed ? '#ffe88a' : '#b0b0c0');
+                grad.addColorStop(1, isFixed ? '#a07000' : '#404050');
+                ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+                ctx.fillStyle = grad; ctx.fill();
+                ctx.strokeStyle = isFixed ? '#c09000' : '#606070'; ctx.lineWidth = 2; ctx.stroke();
+
+                // Inner circle
+                ctx.beginPath(); ctx.arc(x, y, r*0.55, 0, Math.PI*2);
+                ctx.fillStyle = isFixed ? '#c09020' : '#505060'; ctx.fill();
+                ctx.strokeStyle = '#303040'; ctx.lineWidth = 1.5; ctx.stroke();
+
+                // Hub
+                ctx.beginPath(); ctx.arc(x, y, r*0.2, 0, Math.PI*2);
+                ctx.fillStyle = '#202030'; ctx.fill();
+                ctx.strokeStyle = '#404050'; ctx.lineWidth = 1; ctx.stroke();
+
+                // Label
+                ctx.font = `bold 9px Space Mono`;
+                ctx.fillStyle = isFixed ? '#ffe88a' : '#b0b0d0';
+                ctx.textAlign = 'center';
+                ctx.fillText(isFixed ? 'P FIJA' : 'P MÓV', x, y - r - 6);
+            }
+
+        function drawMass(x, y, w, h, mass, color, label, accel, disp) {
+        const cx2 = x - w/2;
+        const ty = y - h;
+
+        // Shadow
+        ctx.beginPath();
+        roundRect(ctx, cx2+3, ty+3, w, h, 6);
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fill();
+
+        // Body gradient
+        const g2 = ctx.createLinearGradient(cx2, ty, cx2+w, ty+h);
+        g2.addColorStop(0, color + 'cc');
+        g2.addColorStop(1, color + '55');
+        ctx.beginPath(); roundRect(ctx, cx2, ty, w, h, 6);
+        ctx.fillStyle = g2; ctx.fill();
+        ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+
+        // Label
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold 11px Space Mono`;
+        ctx.textAlign = 'center';
+        ctx.fillText(label, x, ty + h/2 - 5);
+        ctx.fillStyle = '#ffffffbb';
+        ctx.font = `9px Space Mono`;
+        ctx.fillText(`${mass} kg`, x, ty + h/2 + 8);
+
+        // Accel text
+        if (Math.abs(accel) > 0.001) {
+            const v = accel * 1; // at this time step
+            ctx.fillStyle = '#ffffffaa';
+            ctx.font = `8px Space Mono`;
+            ctx.fillText(`a=${accel.toFixed(2)}`, x, ty + h + 12);
+        }
+        }
+
+        function roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x+r, y);
+        ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
+        ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+        ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
+        ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
+        ctx.closePath();
+        }
+
+        function drawTensionLabel(x, y, text, color) {
+        ctx.font = `bold 9px Space Mono`;
+        ctx.textAlign = 'center';
+        const tw = ctx.measureText(text).width;
+        ctx.fillStyle = 'rgba(13,13,20,0.85)';
+        ctx.beginPath(); roundRect(ctx, x-tw/2-5, y-9, tw+10, 16, 4); ctx.fill();
+        ctx.fillStyle = color;
+        ctx.fillText(text, x, y+3);
+        }
+
+        function drawVArrow(x, y, v, color) {
+        const len = Math.min(Math.abs(v) * 15, 40);
+        const dir = v > 0 ? 1 : -1;
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.moveTo(x, y-8); ctx.lineTo(x, y-8 + dir*len); ctx.stroke();
+        // arrowhead
+        ctx.beginPath();
+        const ay = y-8 + dir*len;
+        ctx.moveTo(x, ay + dir*8);
+        ctx.lineTo(x-5, ay);
+        ctx.lineTo(x+5, ay);
+        ctx.closePath(); ctx.fill();
+        ctx.font = '8px Space Mono'; ctx.textAlign = 'left';
+        ctx.fillStyle = color + 'cc';
+        ctx.fillText(`${(v).toFixed(1)}m/s`, x+8, ay);
+        }
+
+        // Initial draw
+        setTimeout(() => { resize(); drawScene(0); }, 100);
+        </script>
+    </body>
+</html>
